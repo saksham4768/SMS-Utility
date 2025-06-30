@@ -39,19 +39,16 @@ public class SMSScheduler {
             return;
         }
         List<CompletableFuture<Void>> futures = new ArrayList<>();
-
         for(SMSRequest sms : pendingSMS){
             //Completeable future works asynchronously work as @Async annotation
-            CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
-                try{
-                    sms.setStatus(2);
-                    sms.setComments("In Progress");
-                    serviceSMS.processedSMS(sms);
-                }
-                catch (Exception e){
-                    logger.info("Error in processing:- {}", e.getMessage());
-                }
-            }, executor);
+
+            //::Method reference operator
+            //serviceSMS::processedSMS is equivalent to (sms->serviceSMS.processedSMS(sms))
+            CompletableFuture<Void> future = CompletableFuture.supplyAsync(() -> {
+                sms.setStatus(2);
+                sms.setComments("In Progress");
+                return sms;
+            }, executor).thenCompose(serviceSMS::processedSMS);
             futures.add(future);
         }
 

@@ -31,13 +31,13 @@ public class SMSService {
 
     private final WebClient webClient;
 
-    public void processedSMS(SMSRequest Body){
+    public CompletableFuture<Void> processedSMS(SMSRequest Body){
         logger.info("Inside ProcessedSMS for :- {}, using thread:- {}", Body.getInsertionOrderId(), Thread.currentThread().getName());
         try{
             if(Body.getBody() == null || Body.getRecipientID() == null || Body.getBody().equalsIgnoreCase("") || Body.getRecipientID().equalsIgnoreCase("")){
                 failed(Body, "Body or recipient can not be null");
                 smsRepository.save(Body);
-                return;
+                return CompletableFuture.completedFuture(null);
             }
 
             Map<String, Object> requestBody = new HashMap<>();
@@ -45,7 +45,7 @@ public class SMSService {
             requestBody.put("smsBody", Body.getBody());
             requestBody.put("senderId", Body.getSenderID());
 
-            webClient.post()
+            return webClient.post()
                     .uri(api_URL)
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(requestBody)
@@ -57,10 +57,11 @@ public class SMSService {
                         Body.setResponseJSON(err.getMessage());
                         smsRepository.save(Body);
                         logger.error("While processing the rows error throwing:- {}", err.getMessage());
-                    });
+                    }).then().toFuture();
         } catch (Exception e) {
             logger.error("Exception happened while calling the for :- {} and exception is:- {}", Body.getInsertionOrderId(), e.getMessage());
         }
+        return CompletableFuture.completedFuture(null);
     }
     private void onSuccess(ResponseEntity<?> response, SMSRequest Body){
         if(response.getStatusCode().is2xxSuccessful()){
