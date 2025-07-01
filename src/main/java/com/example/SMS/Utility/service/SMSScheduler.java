@@ -40,7 +40,7 @@ public class SMSScheduler {
         }
         List<CompletableFuture<Void>> futures = new ArrayList<>();
         for(SMSRequest sms : pendingSMS){
-            //Completeable future works asynchronously work as @Async annotation
+            //Completable future works asynchronously work as @Async annotation
 
             //::Method reference operator
             //serviceSMS::processedSMS is equivalent to (sms->serviceSMS.processedSMS(sms))
@@ -51,14 +51,13 @@ public class SMSScheduler {
             }, executor).thenCompose(serviceSMS::processedSMS);
             futures.add(future);
         }
-
         //.join() bocking the threads that runs scheduler()
         //scheduler run every fixedRate but if previous one is not completed the new scheduler run is skipped
         //The method won't be called again until the previous run finishes.
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
-                .orTimeout(6, TimeUnit.SECONDS)
+                .orTimeout(10, TimeUnit.SECONDS)
                 .exceptionally(ex -> {
-                    logger.error("Time out occurred while waiting for future complete: {}", ex.getMessage());
+                    logger.error("Time out occurred while waiting for future: {}", ex.getMessage());
                     return null;
                 }).join();
     }

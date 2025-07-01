@@ -33,7 +33,7 @@ public class  Config{
         ThreadPoolTaskExecutor executer = new ThreadPoolTaskExecutor();
         executer.setCorePoolSize(corePoolSize == 0 ? 10 : corePoolSize);
         executer.setMaxPoolSize(maxPoolSize == 0 ? 15 : maxPoolSize);
-        executer.setQueueCapacity(queueCapacity == 0 ? 20 : queueCapacity);
+        executer.setQueueCapacity(queueCapacity == 0 ? 30 : queueCapacity);
         executer.setThreadNamePrefix("SMS-Thread-");
         executer.initialize();
         return executer;
