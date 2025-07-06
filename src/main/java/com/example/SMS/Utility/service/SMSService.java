@@ -32,7 +32,6 @@ public class SMSService {
     private final WebClient webClient;
 
     public CompletableFuture<Void> processedSMS(SMSRequest Body){
-        logger.info("Inside ProcessedSMS for :- {}, using thread:- {}", Body.getInsertionOrderId(), Thread.currentThread().getName());
         try{
             if(Body.getBody() == null || Body.getRecipientID() == null || Body.getBody().equalsIgnoreCase("") || Body.getRecipientID().equalsIgnoreCase("")){
                 failed(Body, "Body or recipient can not be null");
@@ -44,26 +43,29 @@ public class SMSService {
             requestBody.put("recipient", Body.getRecipientID());
             requestBody.put("smsBody", Body.getBody());
             requestBody.put("senderId", Body.getSenderID());
-
+            long start = System.currentTimeMillis();
             return webClient.post()
                     .uri(api_URL)
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(requestBody)
                     .retrieve()
                     .toEntity(String.class)
-                    .doOnSuccess(response -> onSuccess(response, Body))
+                    .doOnSuccess(response -> onSuccess(response, Body, start))
                     .doOnError(err -> {
                         failed(Body, err.getMessage());
                         Body.setResponseJSON(err.getMessage());
                         smsRepository.save(Body);
                         logger.error("While processing the rows error throwing:- {}", err.getMessage());
                     }).then().toFuture();
+
         } catch (Exception e) {
             logger.error("Exception happened while calling the for :- {} and exception is:- {}", Body.getInsertionOrderId(), e.getMessage());
         }
         return CompletableFuture.completedFuture(null);
     }
-    private void onSuccess(ResponseEntity<?> response, SMSRequest Body){
+    private void onSuccess(ResponseEntity<?> response, SMSRequest Body, long start){
+        long end = System.currentTimeMillis();
+        logger.info("⏱ External API response time: {} ms", (end - start));
         if(response.getStatusCode().is2xxSuccessful()){
             if(Body.getRetryCount() == null){
                 Body.setRetryCount(1);
@@ -93,6 +95,8 @@ public class SMSService {
             Body.setResponseJSON(response.toString());
             smsRepository.save(Body);
         }
+        end = System.currentTimeMillis();
+        logger.info("⏱ OverAll processing time: {} ms", (end - start));
     }
     private void failed(SMSRequest Body, String comments){
         if(Body.getRetryCount() == null){
